@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Rexpom">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rexpom</title>
+<style>
+:root { color-scheme: dark;
+  --font-anthropic-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-anthropic-serif: Georgia, "Times New Roman", serif;
+  --color-bg: #141413; --color-panel: #1f1e1d; --color-fg: #f0eee6; --color-fg-muted: #a8a59b; --color-border-line: #3a3936;
+  --color-ok: #5fb37a; --color-bad: #e06c63; --color-warn: #e0a64b;
+  --cds-font-size-title: 1.75rem; --cds-font-size-heading: 1.05rem; --cds-font-size-body: 0.95rem; --cds-font-size-caption: 0.8rem;
+  --cds-font-weight-medium: 600; --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 16px;
+  --cds-pad-xs: 4px; --cds-pad-sm: 6px; --cds-pad-md: 12px; --cds-pad-lg: 18px; --cds-radius: 10px;
+  --cds-surface-popover: #2a2927; --cds-border: #4a4945; --cds-shadow-popover: 0 6px 24px rgba(0,0,0,.45);
+  --cds-chart-axis: #55534e; --cds-chart-grid: #2e2d2a; --cds-chart-reference: #7d7a72; --cds-dur-slow: .3s; --cds-text-secondary: #a8a59b; }
+@media (prefers-color-scheme: light) { :root { color-scheme: light; --color-bg: #faf9f5; --color-panel: #ffffff; --color-fg: #1f1e1d; --color-fg-muted: #6b6963;
+  --color-border-line: #e3e0d6; --color-ok: #2f8a4f; --color-bad: #c2463d; --color-warn: #a86b12; --cds-surface-popover: #ffffff; --cds-border: #d6d2c6;
+  --cds-shadow-popover: 0 6px 24px rgba(0,0,0,.12); --cds-chart-axis: #b8b4a8; --cds-chart-grid: #ece9df; --cds-chart-reference: #8f8b80; --cds-text-secondary: #6b6963; } }
+html, body { margin: 0; background: var(--color-bg); }
+body { padding: clamp(12px, 3vw, 32px); }
+.cbb .stake-in { width: 4.2em; font: inherit; font-size: var(--cds-font-size-caption); padding: 2px 4px; border: 1px solid var(--color-border-line); border-radius: 6px; background: var(--color-bg); color: var(--color-fg); }
+.cbb .odds-in { width: 3.6em; }
+.cbb .mini { font: inherit; font-size: var(--cds-font-size-caption); padding: 1px 7px; margin-left: 2px; border: 1px solid var(--color-border-line); border-radius: 6px; background: var(--color-bg); color: var(--color-fg); cursor: pointer; }
+.cbb .mini[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); }
+.cbb .own-form { display: flex; gap: var(--cds-gap-sm); flex-wrap: wrap; align-items: center; margin: var(--cds-gap-sm) 0; }
+.cbb .own-form input { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); }
+.cbb .toast { position: fixed; right: 16px; bottom: 16px; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: 8px 12px; font-size: var(--cds-font-size-caption); z-index: 60; }
+.cbb .owner-only { display: none; } .cbb.friend .share-close { display: none; } .cbb.friend .share-panel { border-style: solid; } .cbb.is-owner .owner-only { display: revert; } .cbb:not(.is-owner) th.mine { display: none; }
+.cbb table[data-source="rankings"] th[data-field="torvik"], .cbb table[data-source="rankings"] tbody td:nth-child(4) { display: none; }
+.cbb .bet-in{width:16em}
+.cbb td.ctl{white-space:nowrap}
+
+/* ---- phones: today's picks as cards ---- */
+.cbb details.how summary { cursor: pointer; }
+.cbb .watch-toggle { display: none; margin-top: 8px; }
+@media (max-width: 700px) {
+  .cbb .watch-toggle { display: inline-block; }
+  .cbb .scroll:has(.picks-table) { max-height: none; overflow: visible; }
+  .cbb:not(.show-watch) .picks-table tr.watch { display: none; }
+  .cbb .picks-table thead { display: none; }
+  .cbb .picks-table, .cbb .picks-table tbody { display: block; width: 100%; }
+  .cbb .picks-table tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 10px 12px; margin: 0 0 8px;
+    border: 1px solid var(--color-border-line); border-radius: 10px; }
+  .cbb .picks-table tr.hl { border-color: #4caf50; }
+  .cbb .picks-table td { border: 0 !important; padding: 0 !important; text-align: left !important; white-space: normal; }
+  .cbb .picks-table .c-bet { order: 1; flex: 1 1 60%; font-size: 1.15em; }
+  .cbb .picks-table .c-size { order: 2; margin-left: auto; font-size: 1.1em; }
+  .cbb .picks-table .c-game { order: 3; flex: 1 1 100%; color: var(--color-fg-muted); }
+  .cbb .picks-table .c-tip { order: 4; color: var(--color-fg-muted); font-size: .9em; }
+  .cbb .picks-table .c-flag { order: 5; font-size: .9em; }
+  .cbb .picks-table .c-tier, .cbb .picks-table .c-chance, .cbb .picks-table .c-edge, .cbb .picks-table .c-price, .cbb .picks-table .c-move { order: 6; font-size: .9em; }
+  .cbb .picks-table td[data-label]::before { content: attr(data-label) " "; color: var(--color-fg-muted); }
+  .cbb .picks-table td.mine { order: 9; flex: 1 1 100%; margin-top: 6px; }
+  .cbb .picks-table td.mine:empty { display: none; }
+  .cbb .picks-table .stake-in { width: 4.5em; font-size: 16px; padding: 4px 6px; }
+  .cbb .picks-table tr:not(.open) { padding: 7px 10px; margin: 0 0 5px; gap: 0 8px; align-items: center; }
+  .cbb .picks-table tr:not(.open) td:not(.c-bet):not(.c-size) { display: none; }
+  .cbb .picks-table tr:not(.open) .c-bet { font-size: 1em; }
+  .cbb .picks-table tr:not(.open) .c-bet .sub, .cbb .picks-table tr:not(.open) .c-bet .gp-btn { display: none; }
+  .cbb .picks-table tr:not(.open) .c-bet::before, .cbb .picks-table tr:not(.open) .c-size::before { content: none !important; }
+  .cbb .picks-table tr .quick.qmove.ok { color: var(--color-success, #2ea043); } .cbb .picks-table tr .quick.qmove.bad { color: var(--color-danger, #d93025); }
+  .cbb .picks-table tr .quick { display: inline; margin-left: 8px; font-size: .85em; color: var(--color-fg-muted); font-weight: 400; }
+  .cbb .picks-table tr.open .quick { display: none; }
+  .cbb .picks-table tr.open .gp-btn { display: block; margin-top: 6px; font: inherit; font-size: .85em; padding: 4px 10px; border: 1px solid var(--color-border-line); border-radius: 999px; background: var(--color-bg); color: var(--color-fg); }
+}
+
+/* Track record: chart on top, full-width table below (no empty space, no overflow) */
+.cbb #record > .grid:first-child { grid-template-columns: 1fr; align-items: start; }
+.cbb #record .chart { max-width: none; }
+.cbb table.sort-tbl td:first-child { white-space: normal; }
+.cbb .tbl-wrap { overflow-x: auto; }
+
+/* expandable game rows */
+.cbb tr.clickable { cursor: pointer; }
+.cbb tr.clickable:hover td { background: color-mix(in srgb, var(--color-fg) 4%, transparent); }
+.cbb tr.detail td { background: color-mix(in srgb, var(--color-fg) 3%, transparent); padding: 10px 14px !important; white-space: normal; }
+.cbb .gd-proj { font-weight: 600; margin-bottom: 8px; }
+.cbb .gd-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 24px; }
+.cbb .gd-teams h4 { margin: 0 0 4px; font-size: 1em; }
+.cbb .gd-teams table { width: auto; }
+.cbb .gd-teams td { padding: 1px 10px 1px 0 !important; border: 0 !important; }
+@media (max-width: 700px) { .cbb .picks-table tr.detail { display: block; } .cbb .picks-table tr.detail td { display: block; } }
+
+/* Track record tables: wrap text so nothing scrolls sideways */
+.cbb #record .scroll, .cbb #record .tbl-wrap { overflow-x: hidden; }
+.cbb #record table { width: 100%; table-layout: auto; }
+.cbb #record td { white-space: nowrap; }
+.cbb #record table[data-tbl="record"] td:first-child,
+.cbb #record table[data-tbl="tracker"] td:nth-child(2), .cbb #record table[data-tbl="tracker"] td:nth-child(3), .cbb #record table[data-tbl="tracker"] td:nth-child(10),
+.cbb #record table[data-source="bets"] td:nth-child(2), .cbb #record table[data-source="bets"] td:nth-child(3) { white-space: normal; }
+.cbb #record th { white-space: normal; }
+.cbb .feed-warn { color: #e0a64a; font-size: var(--cds-font-size-caption); margin-top: 4px; }
+.cbb .mv { font-size: .78em; margin-left: 4px; font-weight: 600; }
+.cbb .mv.up { color: #66bb6a; }
+.cbb .mv.down { color: #ef5350; }
+
+/* parlay builder */
+.cbb .pl-out { margin: 8px 0; }
+.cbb .legend:has(.u-chip) { display: flex !important; flex-wrap: wrap; gap: 6px; line-height: 1.2; }
+.cbb .picks-table .quick, .cbb .picks-table .gp-btn { display: none; }
+.cbb .line-in { width: 4.2em; } .cbb .line-edge { display: block; font-size: var(--cds-font-size-caption); margin-top: 2px; }
+.cbb .sec-rec { font-size: var(--cds-font-size-body, 1rem); margin: 2px 0 8px; } .cbb .sec-rec:empty { display: none; }
+.cbb tr.res-w { background: rgba(46,160,67,0.10); } .cbb tr.res-l { background: rgba(220,60,60,0.10); }
+.cbb .u-chip { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: var(--cds-font-size-caption); padding: 4px 10px; margin: 0; border: 1px solid var(--color-border-line); border-radius: 999px; background: var(--color-bg); color: var(--color-fg); cursor: pointer; }
+.cbb .u-chip.off { opacity: 0.4; } .cbb .u-chip.off .sw { background: transparent !important; outline: 1px solid var(--color-fg-muted); }
+.cbb .tb { display: inline-flex; align-items: center; justify-content: center; min-width: 2.9em; height: 1.75em; padding: 0 4px; margin-right: 6px; border-radius: 6px; font: 700 0.68rem/1 -apple-system, 'Segoe UI', Arial, sans-serif; letter-spacing: 0.02em; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); box-sizing: border-box; }
+.cbb .sh-title .tb { font-size: 0.8rem; }
+.cbb .pl-leg { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 10px; border: 1px solid var(--color-border-line); border-radius: 8px; margin-bottom: 6px; }
+.cbb .pl-leg b { min-width: 9em; }
+.cbb .pl-leg .mini { margin-left: auto; }
+.cbb .pl-detail { padding: 8px 10px 12px; }
+.cbb .pl-stake { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cbb .pl-leg.leg-w { border-color: var(--color-success, #2e7d32); }
+.cbb .pl-leg.leg-l { border-color: var(--color-danger, #c62828); opacity: .8; }
+.cbb .pl-swaps { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; }
+.cbb .pl-leg.leg-swap { border-style: dashed; }
+.cbb .inj { font-weight: 400; font-size: .8em; color: var(--color-warning, #b26a00); margin-top: 2px; white-space: normal; }
+.cbb .pl-leg { display: block; cursor: pointer; }
+.cbb .pl-top { display: flex; justify-content: space-between; gap: 10px; }
+.cbb .pl-p { white-space: nowrap; color: var(--color-fg-muted); }
+.cbb .pl-swaps { margin-top: 6px; }
+.cbb .pl-sum { margin-top: 8px; font-weight: 600; }
+.cbb .controls label { display: inline-flex; gap: 6px; align-items: center; }
+/* ---- search boxes + phone layout (Rex, 11/17) ---- */
+.cbb .tbl-search { display: flex; align-items: center; gap: 10px; margin: 6px 0 8px; }
+.cbb .tbl-search input { flex: 1 1 auto; max-width: 420px; font: inherit; padding: 6px 10px; border: 1px solid var(--color-border-line); border-radius: 8px; background: var(--color-panel); color: var(--color-fg); }
+.cbb tr.srch-hide { display: none !important; }
+@media (max-width: 700px) {
+  .cbb { font-size: 15px; }
+  .cbb input, .cbb select, .cbb textarea, .cbb .tbl-search input { font-size: 16px; }   /* stops iPhone zoom-on-tap */
+  .cbb .tbl-search input { max-width: none; padding: 9px 12px; }
+  .cbb .tabs { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .cbb .tabs::-webkit-scrollbar { display: none; }
+  .cbb .tabs button { flex: 0 0 auto; padding: 10px 12px; }
+  .cbb .tiles { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .cbb .tiles .tile { padding: 8px 10px !important; min-width: 0; }
+  .cbb .tiles .tile .big { font-size: 1.35em !important; }
+  .cbb .tiles .tile .lab, .cbb .tiles .tile .sub { font-size: .72em !important; }
+  .cbb .picks-table tr.hl td { background: none !important; }
+  .cbb .grid { grid-template-columns: 1fr; }
+  .cbb .card { padding: 12px; }
+  .cbb .h2row, .cbb .controls { flex-wrap: wrap; gap: 8px; }
+  .cbb .own-form { flex-direction: column; align-items: stretch; }
+  .cbb .own-form input, .cbb .own-form select, .cbb .own-form button { width: 100%; padding: 9px 10px; }
+  .cbb .scroll { max-height: none; }
+  .cbb .refresh-btn, .cbb .share-btn { padding: 8px 12px; }
+  /* tables with many columns: scroll sideways, team column stays put */
+  .cbb .scroll:has(table.m-scroll) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cbb table.m-scroll td, .cbb table.m-scroll th { white-space: nowrap; }
+  /* other tables become cards */
+  .cbb table.m-card thead { display: none; }
+  .cbb table.m-card, .cbb table.m-card tbody { display: block; width: 100%; }
+  .cbb table.m-card tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; padding: 10px 12px; margin: 0 0 8px; border: 1px solid var(--color-border-line); border-radius: 10px; }
+  .cbb table.m-card td { border: 0 !important; padding: 0 !important; text-align: left !important; white-space: normal !important; }
+  .cbb table.m-card td:first-child { grid-column: 1 / -1; font-weight: 600; }
+  .cbb table.m-card td[data-label]:not(:first-child)::before { content: attr(data-label) ": "; color: var(--color-fg-muted); }
+  .cbb table.m-card td:empty { display: none; }
+  .cbb table.m-card tr.detail { display: block; }
+  .cbb table.m-card tr.detail td { display: block; }
+  .cbb .scroll:has(table.m-card) { max-height: none !important; overflow: visible !important; }
+  .cbb table.m-card:not(.show-all) tbody tr:nth-child(n+26) { display: none !important; }
+  .cbb table.m-card.compact tr:not(.detail):not(.open) { grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: baseline; gap: 0 10px; padding: 7px 10px; margin: 0 0 4px; font-size: 0.88em; cursor: pointer; }
+  .cbb table.m-card.compact tr:not(.detail):not(.open) td { display: none; }
+  .cbb table.m-card.compact tr:not(.detail):not(.open) td.c-show { display: block; grid-column: auto; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap !important; }
+  .cbb table.m-card.compact tr:not(.detail):not(.open) td.c-show:first-child { color: var(--color-fg-muted); }
+  .cbb table.m-card.compact tr:not(.detail):not(.open) td.c-show::before { content: none !important; }
+  .cbb table.m-card.compact tr.open { cursor: pointer; }
+  .cbb table[data-source="record"].m-card.compact tr:not(.open) td.c-show:first-child { color: var(--color-fg); font-weight: 600; }
+  .cbb table[data-source="record"].m-card.compact tr:not(.detail):not(.open) { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .cbb table[data-source="record"].m-card.compact tr:not(.open) td.c-show:first-child { white-space: normal !important; }
+  .cbb button.more-rows:not([hidden]) { display: block; width: 100%; margin: 4px 0 8px; padding: 10px; border: 1px solid var(--color-border-line); border-radius: 10px; background: none; color: inherit; font: inherit; }
+  .cbb .chart svg { max-width: 100%; height: auto; }
+}
+
+/* units chart totals on phones */
+.cbb .more-rows { display: none; }
+.cbb .u-vals { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: .85em; }
+.cbb .u-vals i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+/* ---- sheets: game preview + team page (Rex, 11/20) ---- */
+.cbb .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 50; align-items: flex-start; justify-content: center; padding: 4vh 12px; }
+.cbb .sheet.open { display: flex; }
+.cbb .sheet-card { position: relative; background: var(--color-panel, #1c1c1c); color: var(--color-fg); border: 1px solid var(--color-border-line); border-radius: 14px; width: min(760px, 100%); max-height: 92vh; overflow: auto; padding: 18px 18px 22px; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.cbb .sheet-x { position: sticky; top: 0; float: right; border: 0; background: transparent; color: inherit; font-size: 20px; cursor: pointer; }
+.cbb .sh-title { font-size: 1.35em; font-weight: 700; margin-bottom: 2px; }
+.cbb .sh-title .tlink { font-size: 1em; font-weight: 700; }
+.cbb .tlink { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-decoration: underline dotted; cursor: pointer; }
+.cbb .sheet h4 { margin: 16px 0 6px; }
+.cbb .sh-models, .cbb .sh-stats { width: 100%; border-collapse: collapse; }
+.cbb .sh-models th, .cbb .sh-models td, .cbb .sh-stats th, .cbb .sh-stats td { padding: 6px 8px; border-bottom: 1px solid var(--color-border-line); text-align: left; }
+.cbb .sh-models td.num, .cbb .sh-stats td.num { text-align: right; }
+.cbb .sh-models tr.avg td { font-weight: 700; }
+.cbb .small { font-size: .78em; }
+.cbb .sh-pick { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--color-border-line); border-radius: 10px; }
+.cbb .sh-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 4px; }
+.cbb .sh-tile { border: 1px solid var(--color-border-line); border-radius: 10px; padding: 8px 10px; }
+.cbb .sh-tile .big { font-size: 1.4em; font-weight: 700; }
+.cbb .sh-up { display: block; width: 100%; text-align: left; margin: 4px 0; padding: 8px 10px; border: 1px solid var(--color-border-line); border-radius: 8px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.cbb .gd-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cbb table[data-source="rankings"] tbody tr, .cbb table[data-source="stats"] tbody tr { cursor: pointer; }
+/* Today's picks: just the essentials; the rest is one tap away */
+.cbb .picks-table th:nth-child(1), .cbb .picks-table td:nth-child(1), .cbb .picks-table th:nth-child(2), .cbb .picks-table td:nth-child(2),
+.cbb .picks-table th:nth-child(4), .cbb .picks-table td:nth-child(4), .cbb .picks-table th:nth-child(8), .cbb .picks-table td:nth-child(8),
+.cbb .picks-table th:nth-child(9), .cbb .picks-table td:nth-child(9) { display: none !important; }
+.cbb table[data-source="upcoming"] th:nth-child(5), .cbb table[data-source="upcoming"] td:nth-child(5) { display: none !important; }
+@media (max-width: 700px) { .cbb table[data-source="upcoming"] td:nth-child(4) { display: none !important; } }
+.cbb .picks-table .sub { font-weight: 400; font-size: .8em; color: var(--color-fg-muted); }
+@media (max-width: 700px) {
+  .cbb .sheet { padding: 0; align-items: flex-end; }
+  .cbb .sheet-card { width: 100%; max-height: 90vh; border-radius: 16px 16px 0 0; padding: 14px 14px 26px; }
+  .cbb .sh-tiles { grid-template-columns: 1fr 1fr; }
+  .cbb .gd-teams { grid-template-columns: 1fr; }
+}
+</style>
+<style>
+.cbb { font-family: var(--font-anthropic-sans); color: var(--color-fg); max-width: 1400px; margin-inline: auto; }
+.cbb h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0 0 var(--cds-gap-xs); }
+.cbb .lede { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin: 0 0 var(--cds-gap-md); }
+.cbb .tabs { display: flex; gap: var(--cds-gap-xs); flex-wrap: wrap; border-bottom: 1px solid var(--color-border-line); margin: var(--cds-gap-md) 0; }
+.cbb .tabs button { font: inherit; background: none; border: 0; border-bottom: 2px solid transparent; padding: var(--cds-pad-sm) var(--cds-pad-md); color: var(--color-fg-muted); cursor: pointer; }
+.cbb .tabs button[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+.cbb .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--cds-gap-md); }
+.cbb .tile, .cbb .card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); }
+.cbb .tile .lab { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cbb .tile .big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; margin: var(--cds-gap-xs) 0; }
+.cbb .tile .sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+.cbb .tile.star { border-color: var(--color-ok); }
+.cbb .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--cds-gap-md); margin-top: var(--cds-gap-md); }
+.cbb .card h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0 0 var(--cds-gap-xs); }
+.cbb .card .note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0 0 var(--cds-gap-sm); }
+.cbb .scroll { max-height: 560px; overflow: auto; }
+.cbb table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.cbb th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.cbb th.sortable { cursor: pointer; }
+.cbb th.sorted-asc::after { content: " ▲"; font-size: .8em; }
+.cbb th.sorted-desc::after { content: " ▼"; font-size: .8em; }
+.cbb th[aria-sort="ascending"]::after { content: " ▲"; } .cbb th[aria-sort="descending"]::after { content: " ▼"; }
+.cbb td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.cbb td.num, .cbb th.num { text-align: right; }
+.cbb tr.ap td:first-child { box-shadow: inset 4px 0 0 var(--color-ok); }
+.cbb .apb { display: inline-block; min-width: 1.8em; text-align: center; padding: 0 5px; border-radius: 999px; background: color-mix(in srgb, var(--color-ok) 22%, transparent); color: var(--color-ok); font-weight: var(--cds-font-weight-medium); }
+.cbb .chk { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cbb .seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+.cbb .seg button { font: inherit; font-size: var(--cds-font-size-caption); background: var(--color-bg); color: var(--color-fg-muted); border: 0; padding: var(--cds-pad-xs) var(--cds-pad-md); cursor: pointer; }
+.cbb .seg button[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); }
+.cbb .st-table[data-view=off] .g-def, .cbb .st-table[data-view=off] .g-sch, .cbb .st-table[data-view=def] .g-off, .cbb .st-table[data-view=def] .g-sch, .cbb .st-table[data-view=sch] .g-off, .cbb .st-table[data-view=sch] .g-def { display: none; }
+.cbb .st-table { table-layout: fixed; min-width: 760px; }
+.cbb .st-table th { white-space: normal; vertical-align: bottom; }
+.cbb .st-table th:nth-child(1) { width: 3.5rem; } .cbb .st-table th:nth-child(2) { width: 10rem; } .cbb .st-table th:nth-child(3) { width: 4rem; } .cbb .st-table th:nth-child(4) { width: 4rem; }
+.cbb .st-table td { overflow: hidden; text-overflow: ellipsis; }
+.cbb th.has-tip { text-decoration: underline dotted var(--color-fg-muted); text-underline-offset: 3px; }
+.cbb .htip { position: fixed; z-index: 50; max-width: 260px; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); line-height: 1.35; white-space: normal; font-weight: 400; }
+.cbb tr.watch td { color: var(--color-fg-muted); }
+.cbb tr.hl td { background: color-mix(in srgb, var(--color-ok) 12%, transparent); }
+.cbb .pill { display: inline-block; padding: 0 6px; border-radius: 999px; font-size: var(--cds-font-size-caption); border: 1px solid var(--color-border-line); }
+.cbb .ok { color: var(--color-ok); } .cbb .bad { color: var(--color-bad); } .cbb .warn { color: var(--color-warn); } .cbb .muted { color: var(--color-fg-muted); }
+.cbb .controls { display: flex; gap: var(--cds-gap-sm); flex-wrap: wrap; margin-bottom: var(--cds-gap-sm); }
+.cbb input[type=search], .cbb select { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); }
+.cbb .chart { position: relative; min-height: 280px; }
+.cbb .tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; }
+.cbb .legend { display: flex; gap: var(--cds-gap-md); flex-wrap: wrap; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-bottom: var(--cds-gap-xs); }
+.cbb .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+.cbb .refresh-btn { font: inherit; font-size: var(--cds-font-size-caption); margin-left: var(--cds-gap-xs); padding: 2px var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-panel); color: var(--color-fg); cursor: pointer; }
+.cbb .h2row { display: flex; align-items: center; justify-content: space-between; gap: var(--cds-gap-sm); flex-wrap: wrap; }
+.cbb .share-btn, .cbb .share-close, .cbb .share-out button, .cbb .share-out a { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); cursor: pointer; text-decoration: none; }
+.cbb .share-panel { margin: var(--cds-gap-sm) 0; padding: var(--cds-pad-md); border: 1px dashed var(--color-border-line); border-radius: var(--cds-radius); }
+.cbb .share-out img { display: block; width: 100%; max-width: 540px; border-radius: var(--cds-radius); margin-bottom: var(--cds-gap-sm); }
+.cbb .share-out .acts { display: flex; gap: var(--cds-gap-sm); flex-wrap: wrap; align-items: center; margin-bottom: var(--cds-gap-sm); }
+.cbb .share-out .hint { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cbb .tip .tg { display: grid; grid-template-columns: auto auto; column-gap: var(--cds-gap-md); row-gap: 2px; }
+.cbb .tip .tv { text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--cds-font-weight-medium); }
+.cbb .tip .th { color: var(--color-fg-muted); margin-bottom: 4px; font-weight: var(--cds-font-weight-medium); }
+.cbb .mu-pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--cds-gap-sm); align-items: end; margin-bottom: var(--cds-gap-md); }
+.cbb .mu-pick label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cbb .mu-pick select { font-size: var(--cds-font-size-body); }
+.cbb .mu-score { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--cds-gap-md); align-items: center; text-align: center; margin: var(--cds-gap-md) 0; }
+.cbb .mu-score .nm { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+.cbb .mu-score .pts { font-family: var(--font-anthropic-serif); font-size: 3rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cbb .mu-score .win { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cbb .mu-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--color-border-line); margin-bottom: var(--cds-gap-md); }
+.cbb .mu-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--cds-gap-sm); margin-bottom: var(--cds-gap-md); }
+.cbb .mu-facts div { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-sm); }
+.cbb .mu-facts b { display: block; font-size: var(--cds-font-size-heading); font-variant-numeric: tabular-nums; }
+.cbb .mu-facts span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cbb td.better { font-weight: var(--cds-font-weight-medium); color: var(--color-ok); }
+@media (max-width: 640px) { .cbb .mu-pick { grid-template-columns: 1fr; } }
+[data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>window.REXPOM_PUBLIC = true;</script>
+<script src="shim.js"></script>
+</head>
+<body>
+
+<div class="cbb">
+<h1>Rexpom</h1>
+<p class="lede">Last data pull: <b data-draw="updated" data-source="meta" data-field="value" data-where="key=updated">—</b> <span class="pull-age muted" data-draw="pull-age" data-source="meta"></span> <button class="refresh-btn" type="button">↻ Refresh</button> <label class="refresh-btn owner-only load-file" title="If Google Drive is down: load data/out/feed.csv.gz from the GitHub repo">⬆ Load data file<input type="file" accept=".gz,.csv,text/csv" hidden></label></p>
+
+
+<div class="tabs" role="tablist">
+<button role="tab" data-tab="today" aria-selected="true">Today</button>
+<button role="tab" data-tab="record" aria-selected="false">Track record</button>
+<button role="tab" data-tab="rankings" aria-selected="false">Rankings</button>
+<button role="tab" data-tab="stats" aria-selected="false">Stats</button>
+<button role="tab" data-tab="matchup" aria-selected="false">Matchup</button>
+<button role="tab" data-tab="upcoming" aria-selected="false">Upcoming</button>
+</div>
+
+<section id="today" data-page="today">
+<div class="card">
+<div class="h2row"><h2>Today's picks</h2><button class="share-btn" type="button">📤 Share today's card</button></div>
+<div class="today-rec sec-rec"></div>
+<div class="share-panel" hidden>
+<div class="controls">
+<select class="share-day" aria-label="Day"><option value="">Today</option></select>
+<select class="share-show" aria-label="Show"><option value="mine">My bets</option><option value="all">All model picks</option><option value="best">⭐ Best Bets only</option></select>
+</div>
+<div class="share-out" data-draw="share-card" data-source="picks record bet_summary meta bets colors tracker scores"></div>
+<button class="share-close" type="button">Close</button>
+</div>
+<details class="how"><summary class="note">How picks work</summary><p class="note" style="margin-top:4px">Spreads and over/unders where our number differs from DraftKings. Rules come from two seasons of backtests plus this season's live results. 🔥 <b>STRONG</b> = underdog with an edge of 5–12 (backtest ~56%). 📉 <b>Under</b> (1u) = an under where our total is 5+ points below DraftKings', both teams 4+ D-I games; our totals run a little high, so unders have won (41-25 live) and overs haven't. 📈 <b>Over</b> (0.5u) = an over where our total is 8+ points above DraftKings' (36-21 live); smaller over edges are mostly the model running high and stay Watch. Favorites are Watch only (the old Lean tier was 19-18). ⭐ <b>Best Bet</b> = STRONG + High: underdog, edge 8–12, both teams 4+ D-I games (~58–62%). Everything else is 👀 Watch: edges of 2.5–5, spreads of 20+, young or big-edge favorites (they lost), and <b>edges of 12+</b>, which usually mean the model is missing something (like blowouts of non-D-I teams). Confidence = expected win rate of the pick's group: <b>High</b> 57%+, <b>Medium</b> 55–57%, <b>Low</b> under 55%. Green rows are Best Bets. <b>Bet size:</b> ⭐ Best Bets 2u, other 🔥 STRONG 1u, 📉 Unders 1u, 📈 Overs 0.5u, 🏀 Big Games 0.5u, Watch not bet. 🏀 <b>Big Game</b> (0.5u) = both teams from the ACC, Big Ten, Big 12, SEC or Big East with an edge of 3–12 on a spread under 20. These are for games worth watching: the backtest was only about break-even plus 4% (54%), so they're kept out of the model's record and tracked on their own line. Projections account for injuries: players ESPN lists as out (and regulars who sat out a team's last game) are taken off that team's number before the edge is figured. <b>When to bet:</b> 7:30–9 AM, right after the morning run, to get the early number. <b>Line now</b> is DraftKings' current line, checked at 11 AM, 1, 4, 6 and 8 PM: ⚠ = moved 1+ point against us since posting (skip it if you haven't bet yet), ✅ = moved our way. Totals stay Watch-only. First-half spreads ("1H") use DraftKings' real first-half line when available (marked "DK"), otherwise an estimate ("est."); our fair number is in brackets; tracked, not counted. 52.4% breaks even at –110.</p></details>
+<div class="scroll">
+<table class="picks-table" data-source="picks" data-row-key="game,type">
+<thead><tr><th data-field="tip">Tip</th><th data-field="game">Game</th><th data-field="bet">The bet</th><th class="num" data-field="best" title="DraftKings price for this side of the bet">DK price</th><th class="num" data-field="clv" title="Where DraftKings' line is now vs when we posted the pick. ⚠ = moved against us by 1+ point: skip it if you haven't bet it yet. ✅ = moved our way.">Line now</th><th class="num" data-field="size">Bet size</th><th data-field="flag">Rating</th><th data-field="tier">Confidence</th><th class="num" data-field="chance">Win chance</th><th class="num" data-field="edge">Edge (pts)</th><th class="mine" data-field="stake">My bet</th></tr></thead>
+<tbody data-draw="picks-body" data-source="picks colors tracker"></tbody>
+</table>
+</div>
+<form class="own-form owner-only"><b>Add a bet of your own</b><input name="date" type="date" title="Game date"><input name="bet" placeholder="e.g. Campbell +22.5 at NC State" size="28"><input name="stake" type="number" min="0" step="0.25" placeholder="Stake (u)" style="width:7em"><input name="odds" placeholder="-110" value="-110" style="width:5em"><button class="mini" type="submit">Add</button></form>
+<button type="button" class="mini watch-toggle" hidden></button>
+</div>
+<div class="card" style="margin-top: var(--cds-gap-md)">
+<div class="h2row"><h2>🎰 Parlay of the day</h2><span class="note" data-draw="potd-rec" data-source="potd_hist"></span></div>
+<details class="how"><summary class="note">ℹ️ How it works</summary><p class="note">Picked in the morning and kept all day from the big games (at least one ACC, Big Ten, Big 12, SEC or Big East team, spread of 15 or less): 3 legs when 3 games have a 4+ point edge on DraftKings, otherwise the 2 best edges. Each leg is an alt spread 6 points better than DK's line, or a favorite's moneyline when DK's price is good. Over two past seasons the 3-leg version hit about half the time (paying around +150) and the 2-leg version about 60% (around –120). <b>Fair</b> = the price where a leg breaks even; a leg is worth it at that price or better. ✅ / ⚠ = the line moved our way / against us (⚠ legs offer swaps). Stake: 0.25–0.5u.</p></details>
+<div class="pl-out" data-draw="potd-card" data-source="potd parlay recent mybets colors"></div>
+<details class="how"><summary class="note">Past parlays</summary>
+<div class="scroll"><table data-source="potd_hist" data-row-key="ymd"><thead><tr><th data-field="ymd">Date</th><th data-field="legs">Legs</th><th class="num" data-field="p">Our chance</th><th data-field="result">Result</th></tr></thead><tbody data-draw="potd-hist"></tbody></table></div>
+</details>
+</div>
+<div class="card" style="margin-top: var(--cds-gap-md)">
+<div class="h2row"><h2>🚀 Longshot parlay</h2><span class="note" data-draw="potd2-rec" data-source="potd2_hist"></span></div>
+<details class="how"><summary class="note">ℹ️ How it works</summary><p class="note">A second, riskier parlay for bigger odds; the Parlay of the day above doesn't change. It takes the 4 best edges among today's big games (same games as above) as alt spreads 3 points better than DraftKings' line, usually around +450 to +600. Over two past seasons it hit about 1 day in 5 (15% and 24%). Only on days with 4 such games. Stake small: 0.1–0.25u.</p></details>
+<div class="pl-out" data-draw="potd2-card" data-source="potd2 colors mybets"></div>
+<details class="how"><summary class="note">Past longshots</summary>
+<div class="scroll"><table data-source="potd2_hist" data-row-key="ymd"><thead><tr><th data-field="ymd">Date</th><th data-field="legs">Legs</th><th class="num" data-field="p">Our chance</th><th data-field="result">Result</th></tr></thead><tbody data-draw="potd2-hist"></tbody></table></div>
+</details>
+</div>
+<div class="card" style="margin-top: var(--cds-gap-md)">
+<h2>Futures worth a look (and to avoid)</h2>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Title, Final Four and conference odds where our chance is clearly above (VALUE) or below (AVOID) what DraftKings' price implies. Futures are long shots, so sizes stay small: 0.5u at High confidence, 0.25u Medium, 0.1u Low; AVOID means pass.</p></details>
+<details class="how"><summary class="note">Show futures</summary><div class="scroll">
+<table data-source="futures" data-row-key="market,team">
+<thead><tr><th data-field="call">Call</th><th data-field="market">Market</th><th data-field="team">Team</th><th class="num" data-field="size">Bet size</th><th class="num" data-field="odds">DK odds</th><th class="num" data-field="vegas_pct">Vegas %</th><th class="num" data-field="our_pct">Our %</th><th data-field="tier">Confidence</th></tr></thead>
+<tbody data-draw="fut-body"></tbody>
+</table>
+</div></details>
+</div>
+</section>
+
+<section id="record" data-page="record" hidden>
+<div class="tiles" id="headline">
+<div class="tile star"><div class="lab">⭐ Best Bets (Strong+High)</div><div class="big" data-draw="t-sh-rec" data-source="record" data-field="record" data-where="group=STRONG%20%2B%20High">—</div><div class="sub"><span data-draw="t-sh-units" data-source="record" data-field="units" data-where="group=STRONG%20%2B%20High">—</span> units · <span data-draw="t-sh-pct" data-source="record" data-field="win_pct" data-where="group=STRONG%20%2B%20High">—</span> wins</div></div>
+<div class="tile"><div class="lab">Rexpom picks</div><div class="big" data-draw="t-all-rec" data-source="record" data-field="record" data-where="group=Rexpom%20picks">—</div><div class="sub"><span data-draw="t-all-units" data-source="record" data-field="units" data-where="group=Rexpom%20picks">—</span> units · <span data-draw="t-all-pct" data-source="record" data-field="win_pct" data-where="group=Rexpom%20picks">—</span> wins</div></div>
+<div class="tile"><div class="lab">🎰 Parlays</div><div class="big" data-draw="t-parlays" data-source="potd_hist potd2_hist">—</div><div class="sub" data-draw="t-parlays-sub" data-source="potd_hist potd2_hist">—</div></div>
+<div class="tile"><div class="lab">Rex's Bets</div><div class="big" data-draw="t-bets-rec" data-source="bet_summary" data-field="record">—</div><div class="sub"><span data-draw="t-bets-pl" data-source="bet_summary" data-field="profit">—</span> units · <span data-draw="t-bets-pct" data-source="bet_summary" data-field="win_pct">—</span> wins · <span data-draw="t-bets-staked" data-source="bet_summary" data-field="staked">—</span> risked<span data-draw="t-bets-pend" data-source="bet_summary" data-field="pending"></span></div></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>Units won over the season</h2>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Running total. Solid lines are the model's picks at their Kelly bet sizes and actual DraftKings prices. The dashed purple line is Rex's Bets: what you actually bet, at your stakes and odds. Graded picks only.</p></details>
+<div class="legend" data-draw="units-legend" data-source="daily_units"></div>
+<div class="chart" data-draw="units-chart" data-source="daily_units"></div>
+</div>
+<div class="card">
+<h2>Record by group</h2>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Wins, losses and pushes for every graded pick, all rated under the <b>current</b> rules (edge, underdog or favorite, and games played known when each pick was posted), so the record matches what the model would bet today. ⭐ Best Bets = STRONG + High (underdog, edge 8–12, both teams 4+ D-I games). Rexpom picks counts STRONG and Lean only; totals, spreads of 20+ and everything below Lean are 👀 Watch plays in their own row. The edge and spread-size rows, and the "(all picks)" rows, include every logged pick, Watch plays too.</p></details>
+<div class="tbl-wrap"><table class="sort-tbl" data-tbl="record" data-source="record" data-row-key="group">
+<thead><tr><th class="sortable" data-field="group">Group</th><th class="sortable" data-field="record">W-L-P</th><th class="sortable num" data-field="win_pct">Win %</th><th class="sortable num" data-field="units">Units</th><th class="sortable num" data-field="expected">Model expected</th><th class="sortable num" data-field="clv" title="Closing-line value: points our number beat the closing line by, on average">Avg CLV</th><th class="sortable num" data-field="beat" title="Share of picks where the line moved our way before tip">Beat close</th></tr></thead>
+<tbody data-draw="record-body"></tbody>
+</table></div>
+</div>
+</div>
+<div class="card" style="margin-top: var(--cds-gap-md)">
+<h2>Every pick</h2>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">All STRONG and Lean picks, newest first. From 11/6 each pick is locked at the line we first posted (the morning number) and graded there; the 4 PM run only adds new picks. CLV = how many points the line moved our way by tip, the earliest sign of a real edge. Watch plays are greyed out and not counted.</p></details>
+<div class="controls">
+<div class="trk-rec sec-rec"></div>
+<select class="trk-filter" aria-label="Show"><option value="">Rexpom picks</option><option value="sh">⭐ Best Bets (Strong+High)</option><option value="STRONG">STRONG</option><option value="Under">📉 Unders</option><option value="Over">📈 Overs (8+)</option><option value="Big">🏀 Big Games</option><option value="Watch">👀 Watch (not counted)</option><option value="Pending">Pending</option></select>
+</div>
+<div class="scroll">
+<table class="sort-tbl" data-tbl="tracker" data-source="tracker" data-row-key="ymd,game,type">
+<thead><tr><th class="sortable" data-field="date">Date</th><th class="sortable" data-field="game">Game</th><th class="sortable" data-field="bet">Bet</th><th class="sortable" data-field="flag">Rating</th><th class="sortable" data-field="tier">Confidence</th><th class="sortable num" data-field="chance">Chance</th><th class="sortable" data-field="result">Result</th><th class="sortable num" data-field="risk">Risk (u)</th><th class="sortable num" data-field="units">Units</th><th class="sortable" data-field="final">Final</th><th class="sortable num" data-field="clv" title="Closing-line value: points between the line we posted and the closing line (+ = the line moved our way)">CLV</th></tr></thead>
+<tbody data-draw="trk-body"></tbody>
+</table>
+</div>
+</div>
+<div class="card" style="margin-top: var(--cds-gap-md)">
+<h2>Rex's Bets</h2>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Only bets actually placed, in units (1 unit = Rex's base bet). Rex's own picks are tagged.</p></details>
+<form class="own-form owner-only"><b>Add my own bet</b><input name="date" type="date" title="Game date"><input name="bet" placeholder="e.g. Campbell +22.5 at NC State" size="28"><input name="stake" type="number" min="0" step="0.25" placeholder="Stake (u)" style="width:7em"><input name="odds" placeholder="-110" value="-110" style="width:5em"><button class="mini" type="submit">Add</button></form>
+<div class="scroll">
+<table data-source="bets" data-row-key="date,bet">
+<thead><tr><th data-field="date">Date</th><th data-field="bet">Bet</th><th data-field="source">Source</th><th class="num" data-field="stake">Risk (u)</th><th data-field="result">Result</th><th class="num" data-field="pl">Units</th><th class="mine"></th></tr></thead>
+<tbody data-draw="bets-body"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="rankings" data-page="rankings" hidden>
+<div class="card">
+<h2>Rankings &amp; odds — all 365 teams</h2><div class="note">Tap any team for its page.</div>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Our rank by Net Rating (points per 100 possessions better than an average team), next to AP, KenPom and Torvik. A green bar and green AP number mark this week's AP Top 25; they don't line up with our order because the AP voters and our ratings disagree on some teams (click the AP header to sort by it). Season stats so far; click a header to sort. Champion = our title odds from 10,000 simulated seasons.</p></details>
+<div class="controls">
+<input type="search" class="rk-search" placeholder="Search team" aria-label="Search team">
+<select class="rk-conf" aria-label="Conference" data-draw="rk-conf" data-source="rankings"></select>
+</div>
+<div class="scroll">
+<table data-source="rankings" data-row-key="team">
+<thead><tr>
+<th class="sortable num" data-field="rank" data-sort="rank">Rank</th><th class="sortable num" data-field="ap" data-sort="ap">AP</th><th class="sortable num" data-field="kenpom" data-sort="kenpom">KenPom</th><th class="sortable num" data-field="torvik" data-sort="torvik">Torvik</th>
+<th class="sortable" data-field="team" data-sort="team">Team</th><th class="sortable" data-field="conf" data-sort="conf">League</th><th data-field="record">Record</th><th data-field="conf_record">Conf</th>
+<th class="sortable num" data-field="net" data-sort="net">Net</th><th class="sortable num" data-field="off" data-sort="off">Off</th><th class="sortable num" data-field="def" data-sort="def">Def</th><th class="sortable num" data-field="pace" data-sort="pace">Pace</th>
+<th class="sortable num" data-field="efg" data-sort="efg">eFG%</th><th class="sortable num" data-field="oefg" data-sort="oefg">Opp eFG%</th><th class="sortable num" data-field="to" data-sort="to">TO%</th><th class="sortable num" data-field="orb" data-sort="orb">Off Reb%</th><th class="sortable num" data-field="p3" data-sort="p3">3P%</th>
+<th data-field="conf_tier">Confidence</th><th class="sortable num" data-field="champ" data-sort="champ">Champion %</th><th class="sortable num" data-field="vegas" data-sort="vegas">Vegas title %</th>
+</tr></thead>
+<tbody data-draw="rk-body"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="stats" data-page="stats" hidden>
+<div class="card">
+<h2>Team stats — four factors and more</h2><div class="note">Tap any team for its page.</div>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Season stats from Torvik for every team that has played. Cell shading shows where a team ranks nationally: green is among the best, red among the worst (for defense stats like Opp eFG% and for TO%, lower is better). 3P rate is the share of shots taken from three. SOS is strength of schedule; WAB is wins above a bubble team. Switch between Offense, Defense and Schedule; click a header to sort.</p></details>
+<div class="controls">
+<div class="seg" role="group" aria-label="Stat group"><button type="button" data-stview="off" aria-pressed="true">Offense</button><button type="button" data-stview="def" aria-pressed="false">Defense</button><button type="button" data-stview="sch" aria-pressed="false">Schedule</button></div>
+<input type="search" class="st-search" placeholder="Search team" aria-label="Search team">
+<select class="st-conf" aria-label="Conference" data-draw="st-conf" data-source="stats"></select>
+</div>
+<div class="scroll">
+<table class="st-table" data-view="off" data-source="stats" data-row-key="team">
+<thead><tr><th class="sortable num" data-field="rank" data-ssort="rank">Rank</th><th class="sortable" data-field="team" data-ssort="team">Team</th><th class="sortable" data-field="conf" data-ssort="conf">Conf</th><th data-field="record">Record</th><th class="sortable num g-off" data-field="efg" data-ssort="efg">eFG%</th><th class="sortable num g-off" data-field="to" data-ssort="to">TO%</th><th class="sortable num g-off" data-field="orb" data-ssort="orb">Off Reb%</th><th class="sortable num g-off" data-field="ftr" data-ssort="ftr">FT rate</th><th class="sortable num g-off" data-field="p3" data-ssort="p3">3P%</th><th class="sortable num g-off" data-field="p2" data-ssort="p2">2P%</th><th class="sortable num g-off" data-field="ft" data-ssort="ft">FT%</th><th class="sortable num g-off" data-field="p3rate" data-ssort="p3rate">3P rate</th><th class="sortable num g-off" data-field="arate" data-ssort="arate">Assist rate</th><th class="sortable num g-def" data-field="efg_d" data-ssort="efg_d">Opp eFG%</th><th class="sortable num g-def" data-field="to_d" data-ssort="to_d">Forced TO%</th><th class="sortable num g-def" data-field="drb" data-ssort="drb">Opp Off Reb%</th><th class="sortable num g-def" data-field="ftr_d" data-ssort="ftr_d">Opp FT rate</th><th class="sortable num g-def" data-field="p3_d" data-ssort="p3_d">Opp 3P%</th><th class="sortable num g-def" data-field="p2_d" data-ssort="p2_d">Opp 2P%</th><th class="sortable num g-def" data-field="p3rate_d" data-ssort="p3rate_d">Opp 3P rate</th><th class="sortable num g-sch" data-field="sos" data-ssort="sos">SOS</th><th class="sortable num g-sch" data-field="ncsos" data-ssort="ncsos">Non-conf SOS</th><th class="sortable num g-sch" data-field="wab" data-ssort="wab">WAB</th></tr></thead>
+<tbody data-draw="st-body"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="matchup" data-page="matchup" hidden>
+<div class="card">
+<h2>Matchup predictor</h2>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Pick any two teams and where they play. The prediction uses the same math as the daily model: each team's offense and defense ratings, tempo, and home court (worth about 3 points), with the rating uncertainty widening the odds.</p></details>
+<div class="mu-pick" data-draw="mu-pick" data-source="rankings">
+<label>Team A<select class="mu-a" aria-label="Team A"></select></label>
+<label>Where<select class="mu-site" aria-label="Where"><option value="n">Neutral site</option><option value="a">Team A at home</option><option value="b">Team B at home</option></select></label>
+<label>Team B<select class="mu-b" aria-label="Team B"></select></label>
+</div>
+<div data-draw="mu-out" data-source="rankings stats model_constants"></div>
+</div>
+</section>
+
+<section id="upcoming" data-page="upcoming" hidden>
+<div class="card">
+<h2>Upcoming games</h2><div class="note">Tap a game for the preview: our score, KenPom's, Vegas', and both teams' last 5.</div>
+<details class="how"><summary class="note">ℹ️ About this</summary><p class="note">Our predicted winner, line and score for the next three days. Win % is the favorite's chance; 🔥 marks a close game (favorite under 60%).</p></details>
+<div class="controls"><select class="up-day" aria-label="Day" data-draw="up-day" data-source="upcoming"></select></div>
+<div class="scroll">
+<table data-source="upcoming" data-row-key="date,away,home">
+<thead><tr><th data-field="away">Matchup</th><th data-field="pick">Our pick</th><th data-field="score">Predicted score</th><th class="num" data-field="fav_pct">Win %</th><th data-field="tier">Confidence</th><th data-field="trank">Vegas line</th></tr></thead>
+<tbody data-draw="up-body"></tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+<script>
+// public betting % (Rex, 11/24): money % vs bets % on our side; 10+ points apart = where the bigger bettors are
+window.splitSig = p => { const t = p.bets_pct === '' || p.bets_pct == null ? null : +p.bets_pct, m = p.money_pct === '' || p.money_pct == null ? null : +p.money_pct;
+  p.bets_pct = t; p.money_pct = m; p.sig = t == null || m == null ? '' : m - t >= 10 ? 'with' : m - t <= -10 ? 'against' : 'even'; return p; };
+
+// ---- the feed: CSV text of the "Rexpom Feed (GitHub)" sheet (the shim supplies it) ----
+dash.loader('feed', {
+fn: ({ answer }) => {
+const text = String(answer || '');
+const rows = []; let row = [], cell = '', q = false;
+for (let i = 0; i < text.length; i++) { const ch = text[i];
+if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+else if (ch === '"') q = true; else if (ch === ',') { row.push(cell); cell = ''; }
+else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+else cell += ch; }
+if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+const columns = ['sec']; for (let i = 1; i <= 40; i++) columns.push('c' + i);
+return rows.filter(r => r[0]).map(r => Object.fromEntries(columns.map((c, i) => [c, r[i] ?? ''])));
+},
+});
+
+// ---- sections of the feed (each '#name' row names that section's columns) ----
+dash.calc('meta', { inputs: ['feed'], title: 'Update info', description: 'The meta section of the feed: when the model last ran.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#meta') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]); return feed.filter(r => r.sec === 'meta').map(r => Object.fromEntries(ks.map(k => [h[k], r[k]]))); } });
+dash.calc('picks', { inputs: ['feed'], title: "Today's picks", description: 'Every STRONG, Lean and Watch play on today\'s board, with its bet size: Best Bets 2u, other STRONG 1u, Lean 0.5u, Watch not bet.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#picks') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'picks' && r[Object.keys(h).find(k => h[k] === 'type')] !== '1H Spread').map(r => { const p = Object.fromEntries(ks.map(k => [h[k], ['chance', 'edge'].includes(h[k]) ? Number(r[k]) : h[k] === 'clv' ? (r[k] === '' || r[k] == null ? null : Number(r[k])) : r[k]]));
+p.size = p.stake !== '' && p.stake != null && !isNaN(+p.stake) ? +p.stake : (p.flag === 'STRONG' && p.tier === 'High' ? 2 : (p.flag === 'STRONG' || p.flag === 'Under') ? 1 : (p.flag === 'Lean' || p.flag === 'Big' || p.flag === 'Over') ? 0.5 : 0); window.splitSig(p); return p; }); } });
+dash.calc('tracker', { inputs: ['feed'], title: 'Every pick, graded', description: 'All logged picks with their results. A Lean with an edge under 3 pts, or on a spread of 20+, is relabeled Watch (not counted). Sizing: Best Bets (STRONG + High) 2u, other STRONG 1u, Unders 1u, Big Games 0.5u; a win at –110 pays 0.91 × risk, a loss costs the risk.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#tracker') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k] && h[k] !== 'units');
+return feed.filter(r => r.sec === 'tracker' && r[Object.keys(h).find(k => h[k] === 'type')] !== '1H Spread').map(r => {   // Rex, 11/24: first-half plays out of the record
+ const p = Object.fromEntries(ks.map(k => [h[k], ['chance', 'edge'].includes(h[k]) ? Number(r[k]) : h[k] === 'clv' ? (r[k] === '' || r[k] == null ? null : Number(r[k])) : r[k]]));
+if (p.flag === 'Lean' && (p.edge < (p.tier === 'High' ? 2.5 : 3) || (p.type === 'Spread' && Math.abs(parseFloat((String(p.bet).match(/[+-]\d+(\.\d+)?$/) || [])[0])) >= 20))) p.flag = 'Watch';
+window.splitSig(p); p.risk = p.flag === 'STRONG' && p.tier === 'High' ? 2 : (p.flag === 'STRONG' || p.flag === 'Under') ? 1 : 0.5;   // Rex, 11/24: flat 2 / 1 / 1 / 0.5
+p.units = p.result === 'W' ? Math.round(p.risk * 0.91 * 100) / 100 : p.result === 'L' ? -p.risk : p.result === 'P' ? 0 : null; return p; }); } });
+dash.calc('scores', { inputs: ['feed'], title: 'Recent final scores', description: 'Final scores from the last few days, used to grade Rex\'s bets at the line he actually got.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#scores') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]); return feed.filter(r => r.sec === 'scores').map(r => Object.fromEntries(ks.map(k => [h[k], /score/.test(h[k]) ? Number(r[k]) : r[k]]))); } });
+dash.calc('colors', { inputs: ['feed'], title: 'Team colors', description: "Each team's short code and colors, for the badges.",
+fn: (feed) => { const h = feed.find(r => r.sec === '#colors') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'colors').map(r => Object.fromEntries(ks.map(k => [h[k], r[k]]))); } });
+dash.calc('potd', { inputs: ['feed'], title: 'Parlay of the day', description: "Today's parlay legs, picked once in the morning.",
+fn: (feed) => { const h = feed.find(r => r.sec === '#potd') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'potd').map(r => Object.fromEntries(ks.map(k => [h[k], ['edge', 'dk_line', 'p', 'price', 'now_line', 'now_ml'].includes(h[k]) ? (r[k] === '' ? null : Number(r[k])) : r[k]]))); } });
+dash.calc('potd_hist', { inputs: ['feed'], title: 'Parlay of the day history', description: 'Every parlay of the day and how it finished.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#potd_hist') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'potd_hist').map(r => Object.fromEntries(ks.map(k => [h[k], h[k] === 'p' ? Number(r[k]) : r[k]]))); } });
+dash.calc('potd2', { inputs: ['feed'], title: 'Longshot parlay', description: "Today's higher-odds parlay legs, picked once in the morning.",
+fn: (feed) => { const h = feed.find(r => r.sec === '#potd2') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'potd2').map(r => Object.fromEntries(ks.map(k => [h[k], ['edge', 'dk_line', 'p', 'price', 'now_line', 'now_ml'].includes(h[k]) ? (r[k] === '' ? null : Number(r[k])) : r[k]]))); } });
+dash.calc('potd2_hist', { inputs: ['feed'], title: 'Longshot parlay history', description: 'Every longshot parlay and how it finished.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#potd2_hist') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'potd2_hist').map(r => Object.fromEntries(ks.map(k => [h[k], h[k] === 'p' ? Number(r[k]) : r[k]]))); } });
+dash.calc('bets', { inputs: ['mybets', 'tracker', 'scores', 'potd_hist', 'potd2_hist'], title: "Rex's real bets", description: 'Bets Rex entered on the site. Model picks are graded from the final score at the line Rex entered; his own picks he grades with W / L / P.',
+fn: (mybets, tracker, scores, potdHist, potd2Hist) => { const ph2 = new Map((potd2Hist || []).map(x => [x.ymd, x.result])); const tk = new Map(tracker.map(t => [rexpom.pickKey(t.ymd, t.game, t.type), t])); const ph = new Map((potdHist || []).map(x => [x.ymd, x.result])); const sc = new Map(scores.flatMap(x => [[x.ymd + '|' + x.game, x], [x.ymd + '|' + x.home + ' @ ' + x.away, x]]));   // either way round (ESPN flips neutral sites)
+const atLine = b => { const x = sc.get(b.ymd + '|' + b.game); if (!x) return null; const m = String(b.bet || '').trim().match(/^(.*?)\s*([+-]?\d+(?:\.\d+)?)(?:\s*[@(].*)?$/); if (!m) return null;
+const side = m[1].trim(), line = +m[2]; let v; if (/^(over|under)$/i.test(side)) v = (x.away_score + x.home_score - line) * (/^over$/i.test(side) ? 1 : -1);
+else if (side === x.home) v = x.home_score - x.away_score + line; else if (side === x.away) v = x.away_score - x.home_score + line; else return null; return v > 0 ? 'W' : v < 0 ? 'L' : 'P'; };
+return mybets.filter(b => b.stake > 0).map(b => { let result = b.result || '', how = result ? 'saved' : '';
+if (!result && (b.type === 'Parlay' || b.type === 'Longshot parlay')) { const r0 = (b.type === 'Parlay' ? ph : ph2).get(b.ymd); if (r0 === 'W' || r0 === 'L' || r0 === 'P') { result = r0; how = 'auto'; } }
+if (!result && b.kind === 'own' && b.game && window.rexpomSide) { const short = window.rexpomShortBet(b.bet), mm = short.match(/^(.*?)\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (/^(over|under)\s+\d/i.test(short)) { const g2 = atLine({ ymd: b.ymd, game: b.game, bet: short.match(/^(over|under)\s+[\d.]+/i)[0] }); if (g2) { result = g2; how = 'score'; } }
+  else if (mm) { const side = window.rexpomSide(b.bet, b.game); if (side) { const g2 = atLine({ ymd: b.ymd, game: b.game, bet: `${side} ${mm[2]}` }); if (g2) { result = g2; how = 'score'; } } } }
+if (!result && b.kind === 'pick') { const g = atLine(b); if (g) { result = g; how = 'score'; } else { const t = tk.get(b.id); if (t && ['W', 'L', 'P'].includes(t.result) && t.bet === b.bet) { result = t.result; how = 'tracker'; } } }
+return { id: b.id, kind: b.kind, how, ymd: b.ymd, date: b.date, game: b.game || '', bet: b.bet, type: b.type || '', source: b.kind === 'pick' ? 'Model pick (' + (b.rating || '') + ')' : b.kind === 'own' ? 'Rex (own pick)' : (b.source || 'Rex'),
+stake: b.stake, odds: b.odds || '-110', result: result || 'Pending', pl: ['W', 'L', 'P'].includes(result) ? rexpom.profit(b.stake, b.odds, result) : null }; })
+.sort((a, b) => String(a.ymd).localeCompare(String(b.ymd)) || String(a.id).localeCompare(String(b.id))); } });
+dash.calc('rankings', { inputs: ['feed'], title: 'Rankings & odds', description: 'All 365 teams: our rating, AP/KenPom/Torvik ranks, record, season stats and title odds.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#rankings') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]); const txt = ['team', 'conf', 'record', 'conf_record', 'conf_tier']; return feed.filter(r => r.sec === 'rankings').map(r => Object.fromEntries(ks.map(k => [h[k], txt.includes(h[k]) ? r[k] : (r[k] === '' ? null : Number(r[k]))]))); } });
+dash.calc('recent', { inputs: ['feed'], title: 'Last five games', description: 'Each team\'s five most recent results.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#recent') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]); return feed.filter(r => r.sec === 'recent').map(r => Object.fromEntries(ks.map(k => [h[k], r[k]]))); } });
+dash.calc('upcoming', { inputs: ['feed'], title: 'Upcoming games', description: 'Our predictions for every game in the next three days.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#upcoming') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]); return feed.filter(r => r.sec === 'upcoming').map(r => Object.fromEntries(ks.map(k => [h[k], h[k] === 'fav_pct' ? Number(r[k]) : r[k]]))); } });
+dash.calc('parlay', { inputs: ['feed'], title: 'Parlay builder', description: "Today's games with a power-conference team: both sides, our predicted margin, DraftKings' spread and moneyline.",
+fn: (feed) => { const h = feed.find(r => r.sec === '#parlay') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'parlay').map(r => { const f = Object.fromEntries(ks.map(k => [h[k], ['margin', 'line', 'ml'].includes(h[k]) ? (r[k] === '' ? null : Number(r[k])) : r[k]])); return f; }); } });
+dash.calc('futures', { inputs: ['feed'], title: 'Futures value / avoid', description: 'Futures where our odds differ clearly from DraftKings. Bet size for VALUE: 0.5u High confidence, 0.25u Medium, 0.1u Low; AVOID = pass.',
+fn: (feed) => { const h = feed.find(r => r.sec === '#futures') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]);
+return feed.filter(r => r.sec === 'futures').map(r => { const f = Object.fromEntries(ks.map(k => [h[k], ['vegas_pct', 'our_pct', 'edge'].includes(h[k]) ? Number(r[k]) : r[k]]));
+f.size = f.call !== 'VALUE' ? 0 : f.tier === 'High' ? 0.5 : f.tier === 'Medium' ? 0.25 : 0.1; return f; }); } });
+
+dash.calc('stats', { inputs: ['feed', 'rankings'], title: 'Team stats', description: 'Season stats from Torvik for every team that has played (shooting, turnovers, rebounding, free throws, schedule), with our rank added.',
+fn: (feed, rankings) => { const h = feed.find(r => r.sec === '#stats') || {}; const ks = Object.keys(h).filter(k => k !== 'sec' && h[k]); const txt = ['team', 'conf', 'record']; const rk = new Map(rankings.map(r => [r.team, r.rank]));
+return feed.filter(r => r.sec === 'stats').map(r => { const o = Object.fromEntries(ks.map(k => [h[k], txt.includes(h[k]) ? r[k] : (r[k] === '' ? null : Number(r[k]))])); o.rank = rk.get(o.team) ?? null; return o; }); } });
+dash.calc('model_constants', { inputs: ['rankings'], title: 'Matchup constants', description: 'Numbers the matchup predictor uses: league-average rating and tempo, home-court edge 2.1 pts/100 per side, game-to-game spread 11 pts.',
+fn: (rk) => { const ok = rk.filter(r => r.off != null && r.def != null); const tp = rk.map(r => r.tempo ?? r.pace).filter(v => v > 0);
+return [{ mu: ok.length ? ok.reduce((s, r) => s + (r.off + r.def) / 2, 0) / ok.length : 105, avg_tempo: tp.length ? tp.reduce((s, v) => s + v, 0) / tp.length : 68, hca: 2.1, game_sd: 11 }]; } });
+
+// ---- worked-out numbers ----
+dash.calc('record', { inputs: ['tracker', 'rankings'], title: 'Record by group', description: 'Graded picks counted by group; units sized 2u / 1u / 0.5u at –110; expected = sum of the model\'s win chances.',
+fn: (tracker, rankings) => {
+const P5 = new Set(['ACC', 'Big Ten', 'Big 12', 'SEC', 'Big East']), confOf = new Map(rankings.map(t => [t.team, t.conf]));
+const lowMajor = p => { const [a, h] = String(p.game).split(' @ '); return confOf.has(a) && confOf.has(h) && !P5.has(confOf.get(a)) && !P5.has(confOf.get(h)); };
+const goodPrice = p => p.price !== '' && p.price != null && !isNaN(+p.price) && +p.price > -110;
+const graded = tracker.filter(p => ['W', 'L', 'P'].includes(p.result));
+const groups = [['STRONG + High', p => p.flag === 'STRONG' && p.tier === 'High'], ['Rexpom picks', p => p.shOnly !== 'yes' && (p.flag === 'STRONG' || p.flag === 'Lean' || p.flag === 'Under' || p.flag === 'Over')], ['🏀 Big Games', p => p.flag === 'Big'], ['STRONG', p => p.shOnly !== 'yes' && p.flag === 'STRONG'], ['📉 Unders', p => p.flag === 'Under'], ['📈 Overs (8+ edge)', p => p.flag === 'Over'],
+['Spreads', p => p.shOnly !== 'yes' && p.flag !== 'Watch' && p.type === 'Spread'], ['Spread favorites (all picks)', p => p.type === 'Spread' && (p => parseFloat((String(p.bet).match(/[+-]?\d+(\.\d+)?$/) || [])[0]))(p) < 0], ['Spread underdogs (all picks)', p => p.type === 'Spread' && (p => parseFloat((String(p.bet).match(/[+-]?\d+(\.\d+)?$/) || [])[0]))(p) > 0], ['Totals', p => p.shOnly !== 'yes' && p.flag !== 'Watch' && p.type === 'Total'], ['Overs (all picks)', p => p.type === 'Total' && /^OVER/i.test(p.bet)], ['Unders (all picks)', p => p.type === 'Total' && /^UNDER/i.test(p.bet)], ['High confidence', p => p.shOnly !== 'yes' && p.flag !== 'Watch' && p.tier === 'High'], ['Medium confidence', p => p.shOnly !== 'yes' && p.flag !== 'Watch' && p.tier === 'Medium'], ['Low confidence', p => p.shOnly !== 'yes' && p.flag !== 'Watch' && p.tier === 'Low'],
+['Edge under 3 pts', p => p.shOnly !== 'yes' && p.edge > 0 && p.edge < 3], ['Edge 3–4.9 pts', p => p.shOnly !== 'yes' && p.edge >= 3 && p.edge < 5], ['Edge 5+ pts', p => p.shOnly !== 'yes' && p.edge >= 5],
+['Spreads of 20+', p => p.shOnly !== 'yes' && p.type === 'Spread' && Math.abs(parseFloat((String(p.bet).match(/[+-]\d+(\.\d+)?$/) || [])[0])) >= 20], ['Spreads under 20', p => p.shOnly !== 'yes' && p.type === 'Spread' && Math.abs(parseFloat((String(p.bet).match(/[+-]\d+(\.\d+)?$/) || [])[0])) < 20], ['Spreads under 20, edge 5+', p => p.edge >= 5 && p.shOnly !== 'yes' && p.type === 'Spread' && Math.abs(parseFloat((String(p.bet).match(/[+-]\d+(\.\d+)?$/) || [])[0])) < 20], ['Line moved our way (STRONG/Lean)', p => p.flag !== 'Watch' && p.type === 'Spread' && p.clv != null && p.clv !== '' && +p.clv > 0], ['Line didn\'t move (STRONG/Lean)', p => p.flag !== 'Watch' && p.type === 'Spread' && p.clv != null && p.clv !== '' && +p.clv === 0], ['Line moved against (STRONG/Lean)', p => p.flag !== 'Watch' && p.type === 'Spread' && p.clv != null && p.clv !== '' && +p.clv < 0],
+['💰 Sharp money with us (all picks)', p => p.sig === 'with'], ['⚠ Sharp money against (all picks)', p => p.sig === 'against'], ['💰 Picks with sharp money with us', p => p.sig === 'with' && p.flag !== 'Watch'], ['⚠ Picks with sharp money against', p => p.sig === 'against' && p.flag !== 'Watch'], ['Picks on the public side (60%+ of bets)', p => p.flag !== 'Watch' && p.bets_pct >= 60], ['Picks against the public (40% or less of bets)', p => p.flag !== 'Watch' && p.bets_pct !== null && p.bets_pct <= 40],
+['👀 Watch (not counted)', p => p.flag === 'Watch']];
+const groupsAll = groups.map(([n, f]) => [n, p => p.type !== '1H Spread' && f(p)]).concat([['Spreads, low-major games (all picks)', p => p.type === 'Spread' && lowMajor(p)], ['Spreads, DK price better than –110 (all picks)', p => p.type === 'Spread' && goodPrice(p)], ['Totals, DK price better than –110 (all picks)', p => p.type === 'Total' && goodPrice(p)]]);
+groups.length = 0; groupsAll.forEach(g => groups.push(g)); window.REC_GROUPS = groups;
+return groups.map(([group, f]) => { const g = graded.filter(f); const cl = tracker.filter(f).filter(p => p.clv != null && !isNaN(p.clv)); const w = g.filter(p => p.result === 'W').length, l = g.filter(p => p.result === 'L').length, pu = g.filter(p => p.result === 'P').length;
+const withP = g.filter(p => !isNaN(p.chance) && p.chance > 0);
+return { group, n: g.length, record: `${w}-${l}-${pu}`, win_pct: w + l ? Math.round(1000 * w / (w + l)) / 10 : null, units: Math.round(100 * g.reduce((s, p) => s + (p.units || 0), 0)) / 100, expected: withP.length ? Math.round(withP.reduce((s, p) => s + p.chance, 0) / withP.length * 10) / 10 : null,
+clv: cl.length ? Math.round(cl.reduce((s, p) => s + p.clv, 0) / cl.length * 100) / 100 : null, beat: cl.length ? Math.round(1000 * cl.filter(p => p.clv > 0).length / cl.length) / 10 : null, clv_n: cl.length }; });
+} });
+dash.calc('daily_units', { inputs: ['tracker', 'bets'], title: 'Running units by day', description: 'Cumulative units by game date for each group.',
+fn: (tracker, bets) => {
+const graded = tracker.filter(p => ['W', 'L', 'P'].includes(p.result)); const mine = bets.filter(b => ['W', 'L', 'P'].includes(b.result) && b.ymd);
+const days = [...new Set(graded.map(p => p.ymd).concat(mine.map(b => String(b.ymd))))].sort();
+const groups = [['STRONG + High', p => p.flag === 'STRONG' && p.tier === 'High'], ['Rexpom picks', p => p.shOnly !== 'yes' && (p.flag === 'STRONG' || p.flag === 'Lean' || p.flag === 'Under' || p.flag === 'Over')], ['🏀 Big Games', p => p.flag === 'Big'], ['STRONG', p => p.shOnly !== 'yes' && p.flag === 'STRONG'], ['📉 Unders', p => p.flag === 'Under'], ['📈 Overs (8+ edge)', p => p.flag === 'Over']];
+const out = []; for (const [group, f] of groups) { let cum = 0, n = 0; for (const d of days) { const g = graded.filter(p => p.ymd === d && f(p)); n += g.length; cum += g.reduce((s, p) => s + (p.units || 0), 0); out.push({ group, ymd: d, units: Math.round(cum * 100) / 100, n }); } }
+{ let cum = 0, n = 0; for (const d of days) { const g = mine.filter(b => String(b.ymd) === d); n += g.length; cum += g.reduce((s, b) => s + (b.pl || 0), 0); out.push({ group: "Rex's Bets", ymd: d, units: Math.round(cum * 100) / 100, n }); } }
+return out;
+} });
+dash.calc('bet_summary', { inputs: ['bets'], title: 'Bet Log totals', description: 'Graded real bets: record, win %, units risked and units won (1u = $1).',
+fn: (bets) => { const g = bets.filter(b => ['W', 'L', 'P'].includes(b.result)); const w = g.filter(b => b.result === 'W').length, l = g.filter(b => b.result === 'L').length;
+return [{ record: `${w}-${l}`, win_pct: w + l ? Math.round(1000 * w / (w + l)) / 10 : null, staked: Math.round(100 * g.reduce((s, b) => s + (b.stake || 0), 0)) / 100, profit: Math.round(100 * g.reduce((s, b) => s + (b.pl || 0), 0)) / 100, pending: bets.filter(b => !['W', 'L', 'P'].includes(b.result)).length, pending_u: Math.round(100 * bets.filter(b => !['W', 'L', 'P'].includes(b.result)).reduce((s, b) => s + (b.stake || 0), 0)) / 100 }]; } });
+
+</script>
+
+<script src="app.js"></script>
+<script src="bets.js"></script>
+</body>
+</html>
