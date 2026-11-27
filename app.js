@@ -699,6 +699,15 @@ makeExpandable(tr, 'u|' + g.date + '|' + g.away + '|' + g.home, g.away, g.home, 
     ? (r.now_ml != null && r.price != null && ((x => x < 0 ? -x / (-x + 100) : 100 / (x + 100))(r.now_ml) - (x => x < 0 ? -x / (-x + 100) : 100 / (x + 100))(r.price)) <= -0.02)
     : r.dk_line - r.now_line <= -1);
 
+  // Rex, 11/27: any open leg can be swapped; legs that moved against us show the choices right away, others behind a small "⇄ Swap" button
+  const swapBox = (alts, pick, open) => {
+    const box = document.createElement('div'); box.className = 'pl-swaps owner-only';
+    const list = document.createElement('div'); list.hidden = !open;
+    for (const c of alts) { const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'mini'; sb.textContent = `Swap → ${legName(c.bet)} (${pct(c.p)})`;
+      sb.onclick = ev => { ev.stopPropagation(); pick(c); }; list.appendChild(sb); }
+    if (!open) { const t = document.createElement('button'); t.type = 'button'; t.className = 'mini'; t.textContent = '⇄ Swap';
+      t.onclick = ev => { ev.stopPropagation(); list.hidden = !list.hidden; t.textContent = list.hidden ? '⇄ Swap' : 'Cancel'; }; box.appendChild(t); }
+    box.appendChild(list); return box; };
   dash.draw('potd-card', el => {
     el.replaceChildren(); if (cbb.failed(el, 'potd')) return;
     const orig = cbb.rows('potd');
@@ -729,18 +738,9 @@ makeExpandable(tr, 'u|' + g.date + '|' + g.away + '|' + g.home, g.away, g.home, 
         const u = document.createElement('button'); u.type = 'button'; u.className = 'mini owner-only'; u.textContent = 'Undo swap';
         u.onclick = ev => { ev.stopPropagation(); const s = getSwaps(); delete s[r.replaced.game]; setSwaps(s); };
         d.appendChild(u);
-      } else if (movedAgainst(r)) {
-        const alts = candidates(used).slice(0, 2);
-        if (alts.length) {
-          const box = document.createElement('div'); box.className = 'pl-swaps owner-only';
-          for (const c of alts) {
-            const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'mini';
-            sb.textContent = `Swap → ${c.bet} (${pct(c.p)})`;
-            sb.onclick = ev => { ev.stopPropagation(); const s = getSwaps(); s[r.game] = c.game; setSwaps(s); };
-            box.appendChild(sb);
-          }
-          d.appendChild(box);
-        }
+      } else if (!r.res) {
+        const alts = candidates(used).slice(0, 3);
+        if (alts.length) d.appendChild(swapBox(alts, c => { const s = getSwaps(); s[r.game] = c.game; setSwaps(s); }, movedAgainst(r)));
       }
       if (r.res) d.classList.add(r.res === 'W' ? 'leg-w' : r.res === 'L' ? 'leg-l' : 'leg-p');
       const [aw, hm] = String(r.game).split(' @ ');
@@ -806,12 +806,9 @@ makeExpandable(tr, 'u|' + g.date + '|' + g.away + '|' + g.home, g.away, g.home, 
         const u = document.createElement('button'); u.type = 'button'; u.className = 'mini owner-only'; u.textContent = 'Undo swap';
         u.onclick = ev => { ev.stopPropagation(); const s = get2(); delete s[r.replaced.game]; set2(s); };
         d.appendChild(u);
-      } else if (!r.res && r.now_line != null && r.dk_line - r.now_line <= -1) {
-        const alts = candidates(used, LS).slice(0, 2);
-        if (alts.length) { const box = document.createElement('div'); box.className = 'pl-swaps owner-only';
-          for (const c of alts) { const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'mini'; sb.textContent = `Swap → ${c.bet} (${pct(c.p)})`;
-            sb.onclick = ev => { ev.stopPropagation(); const s = get2(); s[r.game] = c.game; set2(s); }; box.appendChild(sb); }
-          d.appendChild(box); }
+      } else if (!r.res) {
+        const alts = candidates(used, LS).slice(0, 3);
+        if (alts.length) d.appendChild(swapBox(alts, c => { const s = get2(); s[r.game] = c.game; set2(s); }, r.now_line != null && r.dk_line - r.now_line <= -1));
       }
       if (r.res) d.classList.add(r.res === 'W' ? 'leg-w' : r.res === 'L' ? 'leg-l' : 'leg-p');
       const [aw, hm] = String(r.game).split(' @ ');
